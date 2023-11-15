@@ -69,9 +69,11 @@ int main(int argc, char const* argv[]) {
     fclose(assembly_file);
 
     fprintf(stdout, "bits 16\n\n");
-    for (size_t i = 0; i < file_size; i += 2) {
+    for (size_t i = 0, bytes_read = 0; i < file_size; i += bytes_read) {
+        
         u8 instruction_byte_1 = file_buffer[i];
         u8 instruction_byte_2 = file_buffer[i + 1];
+        bytes_read = 2;
 
         u8 opcode = 0;
         if ((opcode = (instruction_byte_1 & OPCODE_MASK_6BIT) >> 2) == 0b100010) { //MOV register/memory to/from register
@@ -219,12 +221,7 @@ int main(int argc, char const* argv[]) {
                 if (w_value == 0) {
                     i8 immediate_value = file_buffer[i + 4];
                     create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, displacement);
-                    if (displacement < 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s - %d], byte %d", reg, abs(displacement), immediate_value);
-                    else if (displacement > 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s + %d], byte %d", reg, displacement, immediate_value);
-                    else
-                        snprintf(instruction, sizeof instruction, "mov [%s], byte %d", reg, immediate_value);
+                    snprintf(src_operand, sizeof src_operand, "byte %d", immediate_value);
                         
                     i += 3;
                 }
@@ -232,13 +229,8 @@ int main(int argc, char const* argv[]) {
                     u8 data_lo = file_buffer[i + 4];
                     u8 data_hi = file_buffer[i + 5];
                     i16 immediate_value = (i16)((data_hi << 8) | data_lo);
-
-                    if (displacement < 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s - %d], word %d", reg, abs(displacement), immediate_value);
-                    else if (displacement > 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s + %d], word %d", reg, displacement, immediate_value);
-                    else
-                        snprintf(instruction, sizeof instruction, "mov [%s], word %d", reg, immediate_value);
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, displacement);
+                    snprintf(src_operand, sizeof src_operand, "word %d", immediate_value);
                     
                     i += 4;
                 }
@@ -251,28 +243,16 @@ int main(int argc, char const* argv[]) {
 
                 if (w_value == 0) {
                     i8 immediate_value = file_buffer[i + 3];
-
-                    if (displacement < 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s - %d], byte %d", reg, abs(displacement), immediate_value);
-                    else if (displacement > 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s + %d], byte %d", reg, displacement, immediate_value);
-                    else
-                        snprintf(instruction, sizeof instruction, "mov [%s], byte %d", reg, immediate_value);
-
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, displacement);
+                    snprintf(src_operand, sizeof src_operand, "byte %d", immediate_value);
                     i += 2;
                 }
                 else {
                     u8 data_lo = file_buffer[i + 3];
                     u8 data_hi = file_buffer[i + 4];
                     i16 immediate_value = (i16)((data_hi << 8) | data_lo);
-
-                    if (displacement < 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s - %d], word %d", reg, abs(displacement), immediate_value);
-                    else if (displacement > 0)
-                        snprintf(instruction, sizeof instruction, "mov [%s + %d], word %d", reg, displacement, immediate_value);
-                    else
-                        snprintf(instruction, sizeof instruction, "mov [%s], word %d", reg, immediate_value);
-
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, displacement);
+                    snprintf(src_operand, sizeof src_operand, "word %d", immediate_value);
                     i += 3;
                 }
                 break;
@@ -282,14 +262,16 @@ int main(int argc, char const* argv[]) {
 
                 if (w_value == 0) {
                     i8 immediate_value = file_buffer[i + 2];
-                    snprintf(instruction, sizeof instruction, "mov [%s], byte %d", reg, immediate_value);
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, 0);
+                    snprintf(src_operand, sizeof src_operand, "byte %d", immediate_value);
                     i += 1;
                 }
                 else {
                     u8 data_lo = file_buffer[i + 2];
                     u8 data_hi = file_buffer[i + 3];
                     i16 immediate_value = (i16)((data_hi << 8) | data_lo);
-                    snprintf(instruction, sizeof instruction, "mov [%s], word %d", reg, immediate_value);
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, 0);
+                    snprintf(src_operand, sizeof src_operand, "word %d", immediate_value);
                     i += 2;
                 }
 
