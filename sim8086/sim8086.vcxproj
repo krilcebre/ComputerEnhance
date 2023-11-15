@@ -131,7 +131,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="instruction.c" />
+    <ClCompile Include="mov_instruction.c" />
     <ClCompile Include="sim8086.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="instruction.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

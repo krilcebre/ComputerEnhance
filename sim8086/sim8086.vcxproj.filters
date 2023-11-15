@@ -18,5 +18,16 @@
     <ClCompile Include="sim8086.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mov_instruction.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="instruction.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="instruction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
