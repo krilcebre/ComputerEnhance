@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define OPCODE_MASK_7BIT    0b11111110
 #define OPCODE_MASK_6BIT    0b11111100
 #define OPCODE_MASK_4BIT    0b11110000
 #define D_MASK              0b00000010
@@ -190,6 +191,140 @@ int main(int argc, char const* argv[]) {
                 i++;
                 fprintf(stdout, "mov %s, %d\n", reg_name, (i16)data_value);
             }
+        }
+        else if ((opcode = (instruction_byte_1 & OPCODE_MASK_7BIT) >> 1) == 0b1100011) { //MOV immediate to reg/memory 
+            u8 w_value = instruction_byte_1 & W_MASK_6BIT;
+            u8 mod_value = (instruction_byte_2 & MOD_MASK) >> 6;
+            u8 rm_value = instruction_byte_2 & RM_MASK;
+
+            char* instruction[128] = { 0 };
+            switch (mod_value) {
+            case 0b11: { //WRITE IMMEDIATE TO REGISTER
+                if (w_value == 0) {
+                    char* reg = byte_registers_map[rm_value];
+                    snprintf(instruction, sizeof instruction, "mov %s, byte %d", reg, (i8)file_buffer[i + 2]);
+                    i++;
+                } 
+                else {
+                    char* reg = word_registers_map[rm_value];
+                    u8 data_lo = file_buffer[i + 2];
+                    u8 data_hi = file_buffer[i + 3];
+                    snprintf(instruction, sizeof instruction, "mov %s, word %d", reg, (i16)((data_hi << 8) | data_lo));
+                    i += 2;
+                }
+
+                break;
+            }
+            case 0b10: { //WRITE IMMEDIATE using 16-bit displacement
+                u8 displacement_lo = file_buffer[i + 2];
+                u8 displacement_hi = file_buffer[i + 3];
+                i16 displacement = (i16)((displacement_hi << 8) | displacement_lo);
+                char* reg = relative_address_registers[rm_value];
+
+                if (w_value == 0) {
+                    i8 immediate_value = file_buffer[i + 4];
+
+                    if (displacement < 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s - %d], byte %d", reg, abs(displacement), immediate_value);
+                    else if (displacement > 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s + %d], byte %d", reg, displacement, immediate_value);
+                    else
+                        snprintf(instruction, sizeof instruction, "mov [%s], byte %d", reg, immediate_value);
+                        
+                    i += 3;
+                }
+                else {
+                    u8 data_lo = file_buffer[i + 4];
+                    u8 data_hi = file_buffer[i + 5];
+                    i16 immediate_value = (i16)((data_hi << 8) | data_lo);
+
+                    if (displacement < 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s - %d], word %d", reg, abs(displacement), immediate_value);
+                    else if (displacement > 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s + %d], word %d", reg, displacement, immediate_value);
+                    else
+                        snprintf(instruction, sizeof instruction, "mov [%s], word %d", reg, immediate_value);
+                    
+                    i += 4;
+                }
+
+                break;
+            }
+            case 0b01: { //WRITE IMMEDIATE using 8 bit displacement
+                i8 displacement = (i8)file_buffer[i + 2];
+                char* reg = relative_address_registers[rm_value];
+
+                if (w_value == 0) {
+                    i8 immediate_value = file_buffer[i + 3];
+
+                    if (displacement < 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s - %d], byte %d", reg, abs(displacement), immediate_value);
+                    else if (displacement > 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s + %d], byte %d", reg, displacement, immediate_value);
+                    else
+                        snprintf(instruction, sizeof instruction, "mov [%s], byte %d", reg, immediate_value);
+
+                    i += 2;
+                }
+                else {
+                    u8 data_lo = file_buffer[i + 3];
+                    u8 data_hi = file_buffer[i + 4];
+                    i16 immediate_value = (i16)((data_hi << 8) | data_lo);
+
+                    if (displacement < 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s - %d], word %d", reg, abs(displacement), immediate_value);
+                    else if (displacement > 0)
+                        snprintf(instruction, sizeof instruction, "mov [%s + %d], word %d", reg, displacement, immediate_value);
+                    else
+                        snprintf(instruction, sizeof instruction, "mov [%s], word %d", reg, immediate_value);
+
+                    i += 3;
+                }
+                break;
+            }
+            case 0b00: { //WRITE IMMEDIATE to mem location without displacement
+                char* reg = relative_address_registers[rm_value];
+
+                if (w_value == 0) {
+                    i8 immediate_value = file_buffer[i + 2];
+                    snprintf(instruction, sizeof instruction, "mov [%s], byte %d", reg, immediate_value);
+                    i += 1;
+                }
+                else {
+                    u8 data_lo = file_buffer[i + 2];
+                    u8 data_hi = file_buffer[i + 3];
+                    i16 immediate_value = (i16)((data_hi << 8) | data_lo);
+                    snprintf(instruction, sizeof instruction, "mov [%s], word %d", reg, immediate_value);
+                    i += 2;
+                }
+
+                break;
+            }
+            }
+
+            fprintf(stdout, "%s\n", instruction);
+
+        }
+        else if ((opcode = (instruction_byte_1 & OPCODE_MASK_6BIT) >> 2) == 0b101000) { //MOV ACCUMULATOR
+            u8 d_value = (instruction_byte_1 & D_MASK) >> 1;
+            u8 w_value = instruction_byte_1 & W_MASK_6BIT;
+
+            char* reg = (w_value == 0) ? byte_registers_map[0] : word_registers_map[0];
+
+            u16 addr_value = 0;
+            if (w_value == 0) { 
+                addr_value = instruction_byte_2;
+            }
+            else { //read 1 more bytes, otherwise we have already read whole instruction
+                u8 addr_lo = instruction_byte_2;
+                u8 addr_hi = file_buffer[i + 2];
+                addr_value = (addr_hi << 8) | addr_lo;
+                i++;
+            }
+
+            (d_value == 0)
+                ? fprintf(stdout, "mov %s, [%d]\n", reg, addr_value)
+                : fprintf(stdout, "mov [%d], %s\n", addr_value, reg);
         }
         else {
             fprintf(stderr, "Unknown instruction code\n");
