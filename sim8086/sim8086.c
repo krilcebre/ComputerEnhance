@@ -31,6 +31,8 @@ static char const* byte_registers_map[] = { "al", "cl", "dl", "bl", "ah", "ch", 
 static char const* word_registers_map[] = { "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
 static char const* relative_address_registers[] = { "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx" };
 
+void create_memory_displacement_operand(char* const buffer, size_t max_size, char const* const reg_mem_value, int displacement);
+
 int main(int argc, char const* argv[]) {
     assert(argc == 2);
 
@@ -84,35 +86,26 @@ int main(int argc, char const* argv[]) {
                 ? word_registers_map
                 : byte_registers_map;
 
-            char* dest_name[MAX_STR_LEN] = { 0 };
-            char* src_name[MAX_STR_LEN] = { 0 };
+            char* dest_operand[MAX_STR_LEN] = { 0 };
+            char* src_operand[MAX_STR_LEN] = { 0 };
             switch (mod_value) {
-            case 0b11: { //REG TO REG
-                (d_value == 1) 
-                    ? strncpy(dest_name, registers[reg_value], MAX_STR_LEN - 1) 
-                    : strncpy(dest_name, registers[rm_value], MAX_STR_LEN - 1);
-
-                (d_value != 1) 
-                    ? strncpy(src_name, registers[reg_value], MAX_STR_LEN - 1) 
-                    : strncpy(src_name, registers[rm_value], MAX_STR_LEN - 1);
+            case 0b11: { //REG TO REG   
+                strncpy(dest_operand, registers[(d_value == 1) ? reg_value : rm_value], MAX_STR_LEN - 1);
+                strncpy(src_operand, registers[(d_value == 1) ? rm_value : reg_value], MAX_STR_LEN - 1);
 
                 break;
             }
             case 0b01: { //8-bit displacement
-                u8 displacement_value = file_buffer[i + 2]; //displacement byte
+                i8 displacement_value = file_buffer[i + 2]; //displacement byte
                 char const* mem_address = relative_address_registers[rm_value];
-                char const* output_format = ((i8)displacement_value > 0) ? "[%s + %d]" : "[%s - %d]";
-                (d_value == 1) 
-                    ? strncpy(dest_name, registers[reg_value], MAX_STR_LEN - 1) 
-                    : (displacement_value != 0)
-                        ? sprintf(dest_name, output_format, mem_address, abs((i8)displacement_value))
-                        : sprintf(dest_name, "[%s]", mem_address);
-
-                (d_value != 1)
-                    ? strncpy(src_name, registers[reg_value], MAX_STR_LEN - 1)
-                    : (displacement_value != 0)
-                        ? sprintf(src_name, output_format, mem_address, abs((i8)displacement_value))
-                        : sprintf(src_name, "[%s]", mem_address);
+                if (d_value == 1) {
+                    strncpy(dest_operand, registers[reg_value], MAX_STR_LEN - 1);
+                    create_memory_displacement_operand(src_operand, sizeof src_operand, mem_address, displacement_value);
+                }
+                else {
+                    strncpy(src_operand, registers[reg_value], MAX_STR_LEN - 1);
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, mem_address, displacement_value);
+                }
 
                 i++;
                 break;
@@ -120,21 +113,18 @@ int main(int argc, char const* argv[]) {
             case 0b10: { //16-bit displacement
                 u8 displacement_lo = file_buffer[i + 2];
                 u8 displacement_hi = file_buffer[i + 3];
+                i16 displacement = (i16)((displacement_hi << 8) | displacement_lo);
                 char const* mem_address = relative_address_registers[rm_value];
-                u16 displacement_value = (displacement_hi << 8) | displacement_lo;
-                char const* output_format = ((i16)displacement_value > 0) ? "[%s + %d]" : "[%s - %d]";
 
-                (d_value == 1)
-                    ? strncpy(dest_name, registers[reg_value], MAX_STR_LEN - 1)
-                    : (displacement_value != 0)
-                        ? sprintf(dest_name, output_format, mem_address, abs((i16)displacement_value))
-                        : sprintf(dest_name, "[%s]", mem_address);
-
-                (d_value != 1)
-                    ? strncpy(src_name, registers[reg_value], MAX_STR_LEN - 1)
-                    : (displacement_value != 0)
-                        ? sprintf(src_name, output_format, mem_address, abs((i16)displacement_value))
-                        : sprintf(src_name, "[%s]", mem_address);
+                if (d_value == 1) {
+                    strncpy(dest_operand, registers[reg_value], MAX_STR_LEN - 1);
+                    create_memory_displacement_operand(src_operand, sizeof src_operand, mem_address, displacement);
+                }
+                else
+                {
+                    strncpy(src_operand, registers[reg_value], MAX_STR_LEN - 1);
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, mem_address, displacement);
+                }
 
                 i += 2;
                 break;
@@ -143,36 +133,38 @@ int main(int argc, char const* argv[]) {
                 if (rm_value == 0b110) {
                     u8 displacement_lo = file_buffer[i + 2];
                     u8 displacement_hi = file_buffer[i + 3];
-                    char const* mem_address = relative_address_registers[rm_value];
                     u16 displacement_value = (displacement_hi << 8) | displacement_lo;
+                    char const* mem_address = relative_address_registers[rm_value];
 
-                    (d_value == 1) 
-                        ? strncpy(dest_name, registers[reg_value], MAX_STR_LEN - 1) 
-                        : sprintf(dest_name, "[%d]", (i16)displacement_value);
-
-                    (d_value != 1) 
-                        ? strncpy(src_name, registers[reg_value], MAX_STR_LEN - 1) 
-                        : sprintf(src_name, "[%d]", (i16)displacement_value);
+                    if (d_value == 1) {
+                        strncpy(dest_operand, registers[reg_value], MAX_STR_LEN - 1);
+                        snprintf(src_operand, sizeof src_operand, "[%d]", (i16)displacement_value);
+                    }
+                    else {
+                        strncpy(src_operand, registers[reg_value], MAX_STR_LEN - 1);
+                        snprintf(dest_operand, sizeof dest_operand, "[%d]", (i16)displacement_value);
+                    }
 
                     i += 2;
                 }
                 else {
                     char const* mem_address = relative_address_registers[rm_value];
 
-                    (d_value == 1) 
-                        ? strncpy(dest_name, registers[reg_value], MAX_STR_LEN - 1) 
-                        : strncpy(dest_name, mem_address, MAX_STR_LEN - 1);
-
-                    (d_value != 1) 
-                        ? strncpy(src_name, registers[reg_value], MAX_STR_LEN - 1) 
-                        : strncpy(src_name, mem_address, MAX_STR_LEN - 1);
+                    if (d_value == 1) {
+                        strncpy(dest_operand, registers[reg_value], MAX_STR_LEN - 1);
+                        strncpy(src_operand, mem_address, MAX_STR_LEN - 1);
+                    }
+                    else {
+                        strncpy(src_operand, registers[reg_value], MAX_STR_LEN - 1);
+                        strncpy(dest_operand, mem_address, MAX_STR_LEN - 1);
+                    }
                 }
 
                 break;
             }
             }
 
-            fprintf(stdout, "mov %s, %s\n", dest_name, src_name);
+            fprintf(stdout, "mov %s, %s\n", dest_operand, src_operand);
         }
         else if ((opcode = (instruction_byte_1 & OPCODE_MASK_4BIT) >> 4) == 0b1011) { //MOV immediate to register
             u8 w_value = (instruction_byte_1 & W_MASK_4BIT) >> 3;
@@ -197,19 +189,22 @@ int main(int argc, char const* argv[]) {
             u8 mod_value = (instruction_byte_2 & MOD_MASK) >> 6;
             u8 rm_value = instruction_byte_2 & RM_MASK;
 
-            char* instruction[128] = { 0 };
+            char* dest_operand[64] = { 0 };
+            char* src_operand[64] = { 0 };
             switch (mod_value) {
             case 0b11: { //WRITE IMMEDIATE TO REGISTER
                 if (w_value == 0) {
                     char* reg = byte_registers_map[rm_value];
-                    snprintf(instruction, sizeof instruction, "mov %s, byte %d", reg, (i8)file_buffer[i + 2]);
+                    snprintf(dest_operand, sizeof dest_operand, "%s", reg);
+                    snprintf(src_operand, sizeof src_operand, "byte %d", (i8)file_buffer[i + 2]);
                     i++;
                 } 
                 else {
                     char* reg = word_registers_map[rm_value];
                     u8 data_lo = file_buffer[i + 2];
                     u8 data_hi = file_buffer[i + 3];
-                    snprintf(instruction, sizeof instruction, "mov %s, word %d", reg, (i16)((data_hi << 8) | data_lo));
+                    snprintf(dest_operand, sizeof dest_operand, "%s", reg);
+                    snprintf(src_operand, sizeof src_operand, "word %d", (i16)((data_hi << 8) | data_lo));
                     i += 2;
                 }
 
@@ -223,7 +218,7 @@ int main(int argc, char const* argv[]) {
 
                 if (w_value == 0) {
                     i8 immediate_value = file_buffer[i + 4];
-
+                    create_memory_displacement_operand(dest_operand, sizeof dest_operand, reg, displacement);
                     if (displacement < 0)
                         snprintf(instruction, sizeof instruction, "mov [%s - %d], byte %d", reg, abs(displacement), immediate_value);
                     else if (displacement > 0)
@@ -302,7 +297,7 @@ int main(int argc, char const* argv[]) {
             }
             }
 
-            fprintf(stdout, "%s\n", instruction);
+            fprintf(stdout, "mov %s, %s\n", dest_operand, src_operand);
 
         }
         else if ((opcode = (instruction_byte_1 & OPCODE_MASK_6BIT) >> 2) == 0b101000) { //MOV ACCUMULATOR
@@ -343,4 +338,13 @@ file_err:
         fclose(assembly_file);
 
     return EXIT_FAILURE;
+}
+
+void create_memory_displacement_operand(char* const buf, size_t max_size, char const* const reg_mem_value, int displacement) {
+    if (displacement < 0)
+        snprintf(buf, max_size, "[%s - %d]", reg_mem_value, abs(displacement));
+    else if (displacement > 0)
+        snprintf(buf, max_size, "[%s + %d]", reg_mem_value, displacement);
+    else
+        snprintf(buf, max_size, "[%s]", reg_mem_value);
 }
