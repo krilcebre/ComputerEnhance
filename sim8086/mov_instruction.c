@@ -91,8 +91,8 @@ Instruction mov_reg_mem_to_or_from_reg(u8* const buffer, size_t const offset) {
     }
 
     Instruction instruction = {
-        instruction.bytes_count = bytes_read - offset
-    }; 
+        .bytes_count = bytes_read - offset
+    };
     
     strncpy(instruction.operation, "mov", sizeof instruction.operation);
     strncpy(instruction.first_operand, first_operand, sizeof first_operand);
@@ -190,7 +190,7 @@ Instruction mov_immediate_to_reg_mem(u8* const buffer, size_t offset) {
     }
     
     Instruction instruction = {
-        instruction.bytes_count = bytes_read - offset
+        .bytes_count = bytes_read - offset
     };
 
     strncpy(instruction.operation, "mov", sizeof instruction.operation);
@@ -224,7 +224,7 @@ Instruction mov_immediate_to_reg(u8* const buffer, size_t offset) {
     }
 
     Instruction instruction = {
-        instruction.bytes_count = bytes_read - offset
+        .bytes_count = bytes_read - offset
     };
 
     strncpy(instruction.operation, "mov", sizeof instruction.operation);
@@ -253,7 +253,7 @@ Instruction mov_mem_to_acc(u8* const buffer, size_t offset) {
     }
 
     Instruction instruction = {
-        instruction.bytes_count = bytes_read - offset
+        .bytes_count = bytes_read - offset
     };
 
     strncpy(instruction.operation, "mov", sizeof instruction.operation);
@@ -283,7 +283,7 @@ Instruction mov_acc_to_mem(u8* const buffer, size_t offset) {
     }
 
     Instruction instruction = {
-        instruction.bytes_count = bytes_read - offset
+        .bytes_count = bytes_read - offset
     };
 
     strncpy(instruction.operation, "mov", sizeof instruction.operation);

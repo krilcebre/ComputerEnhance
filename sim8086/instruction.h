@@ -29,7 +29,7 @@ struct Instruction {
 	size_t bytes_count;
 	u8 operation[INSTR_OP_MAX_LEN];
 	u8 first_operand[INSTR_OPRND_MAX_LEN];
-	u8 second_operand[INSTR_OPRND_MAX_LEN];	
+	u8 second_operand[INSTR_OPRND_MAX_LEN];
 };
 
 static u8 const* byte_registers_map[] = { "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh" };
