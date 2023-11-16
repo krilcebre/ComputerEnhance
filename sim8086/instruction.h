@@ -18,6 +18,17 @@
 #define REG_MASK_4BIT       0b00000111
 #define RM_MASK             0b00000111
 
+/********* INSTRUCTION CODES BEG *********/
+
+/**** MOV ****/
+#define INSTR_MOV_RM_TO_FROM_RM			0b10001000
+#define INSTR_MOV_IMMEDIATE_TO_RM		0b11000110
+#define INSTR_MOV_IMMEDIATE_TO_REG		0b10110000
+#define INSTR_MOV_ACC_TO_MEM			0b10100010
+#define INSTR_MOV_MEM_TO_ACC			0b10100000
+
+/********* INSTRUCTION CODES END *********/
+
 typedef int8_t i8;
 typedef int16_t i16;
 
@@ -36,9 +47,12 @@ static u8 const* byte_registers_map[] = { "al", "cl", "dl", "bl", "ah", "ch", "d
 static u8 const* word_registers_map[] = { "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
 static u8 const* memory_access_registers_map[] = { "bx + si", "bx + di", "bp + si", "bp + di", "si", "di", "bp", "bx" };
 
-Instruction mov_reg_mem_to_or_from_reg(u8* const buffer, size_t const offset);
-Instruction mov_immediate_to_reg_mem(u8* const buffer, size_t const offset);
-Instruction mov_immediate_to_reg(u8* const buffer, size_t const offset);
+/* MOV, ADD, SUB*/
+Instruction decode_reg_mem_to_or_from_reg(u8* const buffer, size_t const offset);
+Instruction decode_immediate_to_reg_mem(u8* const buffer, size_t const offset);
+Instruction decode_immediate_to_reg(u8* const buffer, size_t const offset);
+
+/* MOV */
 Instruction mov_mem_to_acc(u8* const buffer, size_t const offset);
 Instruction mov_acc_to_mem(u8* const buffer, size_t const offset);
 

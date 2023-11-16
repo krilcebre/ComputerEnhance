@@ -48,21 +48,20 @@ int main(int argc, char const* argv[]) {
     while (bytes_read < file_size) {
         u8 instruction_byte_1 = buffer[bytes_read];
 
-        u8 opcode = 0;
         Instruction instruction = { 0 };
-        if ((opcode = (instruction_byte_1 & OPCODE_MASK_6BIT) >> 2) == 0b100010) {          //MOV register/memory to/from register
-            instruction = mov_reg_mem_to_or_from_reg(buffer, bytes_read);
+        if ((instruction_byte_1 & OPCODE_MASK_6BIT) == INSTR_MOV_RM_TO_FROM_RM) {          //MOV register/memory to/from register
+            instruction = decode_reg_mem_to_or_from_reg(buffer, bytes_read);
         }
-        else if ((opcode = (instruction_byte_1 & OPCODE_MASK_4BIT) >> 4) == 0b1011) {       //MOV immediate to register
-            instruction = mov_immediate_to_reg(buffer, bytes_read);
+        else if ((instruction_byte_1 & OPCODE_MASK_4BIT) == INSTR_MOV_IMMEDIATE_TO_REG) {       //MOV immediate to register
+            instruction = decode_immediate_to_reg(buffer, bytes_read);
         }
-        else if ((opcode = (instruction_byte_1 & OPCODE_MASK_7BIT) >> 1) == 0b1100011) {    //MOV immediate to reg/memory 
-            instruction = mov_immediate_to_reg_mem(buffer, bytes_read);
+        else if ((instruction_byte_1 & OPCODE_MASK_7BIT) == INSTR_MOV_IMMEDIATE_TO_RM) {    //MOV immediate to reg/memory 
+            instruction = decode_immediate_to_reg_mem(buffer, bytes_read);
         }
-        else if ((opcode = (instruction_byte_1 & OPCODE_MASK_7BIT) >> 1) == 0b1010001) {    //MOV ACCUMULATOR TO MEM
+        else if ((instruction_byte_1 & OPCODE_MASK_7BIT) == INSTR_MOV_ACC_TO_MEM) {    //MOV ACCUMULATOR TO MEM
             instruction = mov_acc_to_mem(buffer, bytes_read);
         }
-        else if ((opcode = (instruction_byte_1 & OPCODE_MASK_7BIT) >> 1) == 0b1010000) {    //MOV MEM TO ACCUMULATOR
+        else if ((instruction_byte_1 & OPCODE_MASK_7BIT) == INSTR_MOV_MEM_TO_ACC) {    //MOV MEM TO ACCUMULATOR
             instruction = mov_mem_to_acc(buffer, bytes_read);
         }
         else {
